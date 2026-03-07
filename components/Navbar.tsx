@@ -22,7 +22,7 @@ const Navbar = () => {
         <header className="w-full fixed z-50 bg-(--bg-primary)">
             <div className="wrapper navbar-height py-4 flex justify-between items-center">
                 <Link href="/" className="flex gap-0.5 items-center">
-                    <Image src="/assets/logo.png" alt="ChatLit" width={42} height={26} />
+                    <Image src="/assets/logo.png" alt="" aria-hidden="true" role="presentation" width={42} height={26} />
                     <span className="logo-text">ChatLit</span>
                 </Link>
 
