@@ -25,3 +25,4 @@ const Page = async ({ searchParams }: { searchParams: Promise<{ query?: string }
 }
 
 export default Page
+
