@@ -13,18 +13,17 @@ import { ACCEPTED_PDF_TYPES, ACCEPTED_IMAGE_TYPES, DEFAULT_VOICE } from '@/lib/c
 import FileUploader from './FileUploader';
 import VoiceSelector from './VoiceSelector';
 import LoadingOverlay from './LoadingOverlay';
-// import {useAuth, useUser} from "@clerk/nextjs";
+import {useAuth, useUser} from "@clerk/nextjs"; // TODO: useUser is unused — needed later for PostHog user identification
 import { toast } from 'sonner';
 import {checkBookExists, createBook, saveBookSegments} from "@/lib/actions/book.actions";
 import {useRouter} from "next/navigation";
 import {parsePDFFile} from "@/lib/utils";
-// import {upload} from "@vercel/blob/client";
+import {upload} from "@vercel/blob/client";
 
 const UploadForm = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
-    // const { userId } = useAuth();
-    const userId = "temp_user_id"; // Placeholder for commented out Clerk auth
+    const { userId } = useAuth();
     const router = useRouter()
 
     useEffect(() => {
@@ -36,7 +35,7 @@ const UploadForm = () => {
         defaultValues: {
             title: '',
             author: '',
-            persona: DEFAULT_VOICE,
+            persona: '',
             pdfFile: undefined,
             coverImage: undefined,
         },
@@ -49,7 +48,7 @@ const UploadForm = () => {
 
         setIsSubmitting(true);
 
-        // PostHog -> Track Book Uploads...
+        // TODO: PostHog not set up — track book upload event here once PostHog is installed (posthog.capture('book_uploaded', { title: data.title }))
 
         try {
             const existsCheck = await checkBookExists(data.title);
@@ -57,7 +56,7 @@ const UploadForm = () => {
             if(existsCheck.exists && existsCheck.book) {
                 toast.info("Book with same title already exists.");
                 form.reset()
-                router.push(`/books/${(existsCheck.book as any).slug}`)
+                router.push(`/books/${existsCheck.book.slug}`)
                 return;
             }
 
@@ -71,35 +70,32 @@ const UploadForm = () => {
                 return;
             }
 
-            // const uploadedPdfBlob = await upload(fileTitle, pdfFile, {
-            //     access: 'public',
-            //     handleUploadUrl: '/api/upload',
-            //     contentType: 'application/pdf'
-            // });
-            const uploadedPdfBlob = { url: "temp_url", pathname: "temp_path" };
+            const uploadedPdfBlob = await upload(fileTitle, pdfFile, {
+                access: 'public',
+                handleUploadUrl: '/api/upload',
+                contentType: 'application/pdf'
+            });
 
             let coverUrl: string;
 
             if(data.coverImage) {
                 const coverFile = data.coverImage;
-                // const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, coverFile, {
-                //     access: 'public',
-                //     handleUploadUrl: '/api/upload',
-                //     contentType: coverFile.type
-                // });
-                // coverUrl = uploadedCoverBlob.url;
-                coverUrl = "temp_cover_url";
+                const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, coverFile, {
+                    access: 'public',
+                    handleUploadUrl: '/api/upload',
+                    contentType: coverFile.type
+                });
+                coverUrl = uploadedCoverBlob.url;
             } else {
-                // const response = await fetch(parsedPDF.cover)
-                // const blob = await response.blob();
+                const response = await fetch(parsedPDF.cover)
+                const blob = await response.blob();
 
-                // const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, blob, {
-                //     access: 'public',
-                //     handleUploadUrl: '/api/upload',
-                //     contentType: 'image/png'
-                // });
-                // coverUrl = uploadedCoverBlob.url;
-                coverUrl = "temp_cover_url";
+                const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, blob, {
+                    access: 'public',
+                    handleUploadUrl: '/api/upload',
+                    contentType: 'image/png'
+                });
+                coverUrl = uploadedCoverBlob.url;
             }
 
             const book = await createBook({
@@ -113,13 +109,13 @@ const UploadForm = () => {
                 fileSize: pdfFile.size,
             });
 
-            if(!book.success) {
-                toast.error(book.error as string || "Failed to create book");
-                if (book.isBillingError) {
-                    router.push("/subscriptions");
-                }
-                return;
-            }
+            // if(!book.success) {
+            //     toast.error(book.error as string || "Failed to create book");
+            //     if (book.isBillingError) {
+            //         router.push("/subscriptions");
+            //     }
+            //     return;
+            // }
 
             if(book.alreadyExists) {
                 toast.info("Book with same title already exists.");
